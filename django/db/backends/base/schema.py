@@ -95,6 +95,10 @@ class BaseDatabaseSchemaEditor(object):
             self.atomic.__exit__(exc_type, exc_value, traceback)
 
     # Core utility functions
+    def sanitize(self, name):
+        if "." in name or '"' in name:
+            return name.replace('"', '').replace('.', '_')
+        return name
 
     def execute(self, sql, params=()):
         """
@@ -897,7 +901,7 @@ class BaseDatabaseSchemaEditor(object):
         sql_create_index = sql or self.sql_create_index
         return sql_create_index % {
             "table": self.quote_name(model._meta.db_table),
-            "name": self.quote_name(self._create_index_name(model, columns, suffix=suffix)),
+            "name": self.sanitize(self.quote_name(self._create_index_name(model, columns, suffix=suffix))),
             "using": "",
             "columns": ", ".join(self.quote_name(column) for column in columns),
             "extra": tablespace_sql,
@@ -952,12 +956,9 @@ class BaseDatabaseSchemaEditor(object):
             "to_column": to_column,
         }
 
-        if "." in suffix or '"' in suffix:
-            suffix = suffix.replace('"', '').replace('.', '_')
-
         return self.sql_create_fk % {
             "table": self.quote_name(from_table),
-            "name": self.quote_name(self._create_index_name(model, [from_column], suffix=suffix)),
+            "name": self.sanitize(self.quote_name(self._create_index_name(model, [from_column], suffix=suffix))),
             "column": self.quote_name(from_column),
             "to_table": self.quote_name(to_table),
             "to_column": self.quote_name(to_column),
