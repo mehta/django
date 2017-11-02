@@ -965,10 +965,15 @@ class BaseDatabaseSchemaEditor(object):
             "deferrable": self.connection.ops.deferrable_sql(),
         }
 
+    def sanitize(self, name):
+        if "." in name or '"' in name:
+            return name.replace('"', '').replace('.', '_')
+        return name
+
     def _create_unique_sql(self, model, columns):
         return self.sql_create_unique % {
             "table": self.quote_name(model._meta.db_table),
-            "name": self.quote_name(self._create_index_name(model, columns, suffix="_uniq")),
+            "name": self.sanitize(self.quote_name(self._create_index_name(model, columns, suffix="_uniq"))),
             "columns": ", ".join(self.quote_name(column) for column in columns),
         }
 
